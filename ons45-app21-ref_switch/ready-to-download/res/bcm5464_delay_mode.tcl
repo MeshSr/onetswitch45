@@ -1,0 +1,6 @@
+# adjust the bcm delay mode
+mw 43c00500 50
+mw 43c00508 f1e7; sleep 1; mw 43c00504 00184800; sleep 1; mw 43c00504 00188800; sleep 1; md 43c0050c 1
+mw 43c00508 f1e7; sleep 1; mw 43c00504 01184800; sleep 1; mw 43c00504 01188800; sleep 1; md 43c0050c 1
+mw 43c00508 f1e7; sleep 1; mw 43c00504 02184800; sleep 1; mw 43c00504 02188800; sleep 1; md 43c0050c 1
+mw 43c00508 f1e7; sleep 1; mw 43c00504 03184800; sleep 1; mw 43c00504 03188800; sleep 1; md 43c0050c 1
