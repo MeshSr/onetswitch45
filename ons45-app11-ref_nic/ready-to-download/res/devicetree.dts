@@ -183,7 +183,7 @@
 			axistream-connected = <&axi_dma_0>;
 			axistream-control-connected = <&axi_dma_0>;
 			clock-frequency = <76923080>;
-			compatible = "xlnx,axi-ethernet-buffer-2.0", "xlnx,axi-ethernet-marvell-1.00.a";
+			compatible = "xlnx,axi-ethernet-buffer-2.0", "xlnx,axi-ethernet-1.00.a";
 			device_type = "network";
 			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0 59 4>;
@@ -237,7 +237,7 @@
 			axistream-connected = <&axi_dma_1>;
 			axistream-control-connected = <&axi_dma_1>;
 			clock-frequency = <76923080>;
-			compatible = "xlnx,axi-ethernet-buffer-2.0", "xlnx,axi-ethernet-marvell-1.00.a";
+			compatible = "xlnx,axi-ethernet-buffer-2.0", "xlnx,axi-ethernet-1.00.a";
 			device_type = "network";
 			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0 58 4>;
@@ -267,7 +267,7 @@
 			axistream-connected = <&axi_dma_2>;
 			axistream-control-connected = <&axi_dma_2>;
 			clock-frequency = <76923080>;
-			compatible = "xlnx,axi-ethernet-buffer-2.0", "xlnx,axi-ethernet-marvell-1.00.a";
+			compatible = "xlnx,axi-ethernet-buffer-2.0", "xlnx,axi-ethernet-1.00.a";
 			device_type = "network";
 			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0 57 4>;
@@ -297,7 +297,7 @@
 			axistream-connected = <&axi_dma_3>;
 			axistream-control-connected = <&axi_dma_3>;
 			clock-frequency = <76923080>;
-			compatible = "xlnx,axi-ethernet-buffer-2.0", "xlnx,axi-ethernet-marvell-1.00.a";
+			compatible = "xlnx,axi-ethernet-buffer-2.0", "xlnx,axi-ethernet-1.00.a";
 			device_type = "network";
 			interrupt-parent = <&ps7_scugic_0>;
 			interrupts = <0 56 4>;
