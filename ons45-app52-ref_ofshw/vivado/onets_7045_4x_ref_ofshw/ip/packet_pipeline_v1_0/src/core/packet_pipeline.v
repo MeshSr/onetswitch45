@@ -1,9 +1,6 @@
 //-------------------------------------------------------------------
 // AXI4 interface wrapper for packet processing pipeline.
 //-------------------------------------------------------------------
-//改动日志
-//改动tx_queue里 pkt_stored
-//改动output_queue里output_fifo_wr_en写的条件
 module packet_pipeline#(
     // Parameters of Axi Slave Bus Interface S_AXI_LITE
     parameter integer C_S_AXI_LITE_DATA_WIDTH	= 32,
@@ -300,7 +297,7 @@ module packet_pipeline#(
       .s_axi_aclk                   (s_axi_lite_aclk), 
       .s_axi_aresetn                (s_axi_lite_aresetn), 
       .s_axi_awaddr                 (s_axi_lite_awaddr), 
-      .s_axi_awprot                 (s_axi_lite_lite_awprot), 
+      .s_axi_awprot                 (s_axi_lite_awprot), 
       .s_axi_awvalid                (s_axi_lite_awvalid), 
       .s_axi_awready                (s_axi_lite_awready), 
       .s_axi_wdata                  (s_axi_lite_wdata), 

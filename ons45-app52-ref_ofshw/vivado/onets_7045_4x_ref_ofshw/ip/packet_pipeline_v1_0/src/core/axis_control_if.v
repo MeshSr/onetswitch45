@@ -54,15 +54,20 @@ reg len_fifo_rd_en;
 wire [11:0] len_fifo_dout;
 generate
    if(ENABLE_LEN)begin
-      pkt_len_fifo_12x32 pkt_len_fifo
+      small_fifo
+      #( .WIDTH(12),
+           .MAX_DEPTH_BITS(5))
+      pkt_len_fifo
       (
          .clk(m_axis_txc_aclk), 
-         .rst(!m_axis_txc_aresetn), 
+         .reset(!m_axis_txc_aresetn), 
          .din(tx_pkt_byte_cnt), 
          .wr_en(tx_pkt_byte_cnt_vld), 
          .rd_en(len_fifo_rd_en), 
          .dout(len_fifo_dout), 
          .full( ),  
+         .prog_full(),
+         .nearly_full(),
          .empty( ) 
       );
    end
@@ -70,6 +75,14 @@ generate
       assign len_fifo_dout = 12'hFFF;
    end
 endgenerate
+
+always@(posedge m_axis_txc_aclk)
+    if(!m_axis_txc_aresetn)
+        len_fifo_rd_en <= 1'b0;
+    else if(tx_pkt_byte_cnt_vld)
+        len_fifo_rd_en <= 1'b1;
+    else len_fifo_rd_en<=0;
+
 
 always @(posedge m_axis_txc_aclk)
    if(!m_axis_txc_aresetn)begin
@@ -79,14 +92,12 @@ always @(posedge m_axis_txc_aclk)
       m_axis_txc_tdata <= 32'hFF_FF_FF_FF;
       m_axis_txc_tkeep <= 4'hF;
       m_axis_txc_tlast <= 1'b0;
-      len_fifo_rd_en <= 1'b0;
    end
    else begin
       m_axis_txc_tvalid <= 1'b0;
       m_axis_txc_tdata <= {24'h50000,len_fifo_dout};
       m_axis_txc_tkeep <= 4'hF;
       m_axis_txc_tlast <= 1'b0;
-      len_fifo_rd_en <= 1'b0;
       case (tx_ctrl_state)
          WAIT_FOR_REQ: begin
             if(m_axis_txd_tvalid) begin
@@ -105,7 +116,6 @@ always @(posedge m_axis_txc_aclk)
                   WORD4: begin 
                      send_ctrl_words <= WORD0;
                      m_axis_txc_tlast <= 1'b1;
-                     len_fifo_rd_en <= 1'b1;
                      tx_ctrl_state <= WAIT_FOR_NXT;
                   end
                endcase

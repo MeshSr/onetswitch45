@@ -169,6 +169,8 @@ module onet_core_logic(
       output [4*1 - 1 : 0]    dma_tx_pkt_byte_cnt_vld
     );
     
+
+    
    //--------local parameters -------
    localparam DATA_WIDTH = 64;
    localparam CTRL_WIDTH = DATA_WIDTH/8;
@@ -251,6 +253,12 @@ module onet_core_logic(
    wire [DATA_WIDTH-1:0]               in_data [NUM_QUEUES-1:0];
    wire [CTRL_WIDTH-1:0]               in_ctrl [NUM_QUEUES-1:0];
    
+   wire [NUM_QUEUES-1:0]               eth_out_wr;
+   wire [NUM_QUEUES-1:0]               eth_out_rdy;
+   wire [DATA_WIDTH-1:0]               eth_out_data [3:0];
+   wire [CTRL_WIDTH-1:0]               eth_out_ctrl [3:0];   
+   
+      reg sim_start;
    //-----------------------------------------------------------
    //MAC rx and tx queues
    //use register block 8-11
@@ -265,22 +273,22 @@ module onet_core_logic(
             .STAGE_NUMBER(`IO_QUEUE_STAGE_NUM)
          ) eth_queue
         (   // register interface
-            .mac_grp_reg_req        (core_256kb_0_reg_req[`WORD(`MAC_QUEUE_0_BLOCK_ADDR + i,1)]),
+           /* .mac_grp_reg_req        (core_256kb_0_reg_req[`WORD(`MAC_QUEUE_0_BLOCK_ADDR + i,1)]),
             .mac_grp_reg_ack        (core_256kb_0_reg_ack[`WORD(`MAC_QUEUE_0_BLOCK_ADDR + i,1)]),
             .mac_grp_reg_rd_wr_L    (core_256kb_0_reg_rd_wr_L[`WORD(`MAC_QUEUE_0_BLOCK_ADDR + i,1)]),
             .mac_grp_reg_addr       (core_256kb_0_reg_addr[`WORD(`MAC_QUEUE_0_BLOCK_ADDR + i,
                                      `BLOCK_SIZE_64k_REG_ADDR_WIDTH)]),
             .mac_grp_reg_rd_data    (core_256kb_0_reg_rd_data[`WORD(`MAC_QUEUE_0_BLOCK_ADDR + i,32)]),
-            .mac_grp_reg_wr_data    (core_256kb_0_reg_wr_data[`WORD(`MAC_QUEUE_0_BLOCK_ADDR + i,32)]),
+            .mac_grp_reg_wr_data    (core_256kb_0_reg_wr_data[`WORD(`MAC_QUEUE_0_BLOCK_ADDR + i,32)]),*/
             // data path interface
             .out_wr                 (in_wr[i*2]),
             .out_rdy                (in_rdy[i*2]),
             .out_data               (in_data[i*2]),
             .out_ctrl               (in_ctrl[i*2]),
-            .in_wr                  (out_wr[i*2]),
-            .in_rdy                 (out_rdy[i*2]),
-            .in_data                (out_data[i*2]),
-            .in_ctrl                (out_ctrl[i*2]),
+            .in_wr                  (eth_out_wr[i]),
+            .in_rdy                 (eth_out_rdy[i]),
+            .in_data                (eth_out_data[i]),
+            .in_ctrl                (eth_out_ctrl[i]),
             // mac interface
             .s_rx_axis_tdata        (s_axis_eth_rx_tdata_i[i]), 
             .s_rx_axis_tvalid       (s_axis_eth_rx_tvalid_i[i]), 
@@ -308,20 +316,20 @@ module onet_core_logic(
    generate
       //genvar i;
       for(i=0; i<4; i=i+1) begin: dma_queues
-         eth_queue #(
+         dma_queue #(
             .DATA_WIDTH(DATA_WIDTH),
             .ENABLE_HEADER(1),
             .PORT_NUMBER(2 * i + 1),
             .STAGE_NUMBER(`IO_QUEUE_STAGE_NUM)
          ) dma_queue
         (   // register interface
-            .mac_grp_reg_req        (core_256kb_0_reg_req[`WORD(`CPU_QUEUE_0_BLOCK_ADDR + i,1)]),
+           /* .mac_grp_reg_req        (core_256kb_0_reg_req[`WORD(`CPU_QUEUE_0_BLOCK_ADDR + i,1)]),
             .mac_grp_reg_ack        (core_256kb_0_reg_ack[`WORD(`CPU_QUEUE_0_BLOCK_ADDR + i,1)]),
             .mac_grp_reg_rd_wr_L    (core_256kb_0_reg_rd_wr_L[`WORD(`CPU_QUEUE_0_BLOCK_ADDR + i,1)]),
             .mac_grp_reg_addr       (core_256kb_0_reg_addr[`WORD(`CPU_QUEUE_0_BLOCK_ADDR + i,
                                      `BLOCK_SIZE_64k_REG_ADDR_WIDTH)]),
             .mac_grp_reg_rd_data    (core_256kb_0_reg_rd_data[`WORD(`CPU_QUEUE_0_BLOCK_ADDR + i,32)]),
-            .mac_grp_reg_wr_data    (core_256kb_0_reg_wr_data[`WORD(`CPU_QUEUE_0_BLOCK_ADDR + i,32)]),
+            .mac_grp_reg_wr_data    (core_256kb_0_reg_wr_data[`WORD(`CPU_QUEUE_0_BLOCK_ADDR + i,32)]),*/
             // data path interface
             .out_wr                 (in_wr[i*2+1]),
             .out_rdy                (in_rdy[i*2+1]),
@@ -351,6 +359,29 @@ module onet_core_logic(
          );
       end 
    endgenerate
+   
+   generate
+      //genvar i;
+      for(i=0; i<4; i=i+1) begin: eth_dma_aggrs
+           eth_dma_aggr eth_dma_aggr
+           (
+               .eth_in_data  (out_data[i*2]),   
+               .eth_in_ctrl  (out_ctrl[i*2]), 
+               .eth_in_wr    (out_wr[i*2]),
+               .eth_in_rdy   (out_rdy[i*2]),
+               .dma_in_data  (in_data[i*2+1]),    
+               .dma_in_ctrl  (in_ctrl[i*2+1]), 
+               .dma_in_wr    (in_wr[i*2+1]),
+               .dma_in_rdy   (in_rdy[i*2+1]),  
+               .out_data     (eth_out_data[i]),
+               .out_ctrl     (eth_out_ctrl[i]), 
+               .out_wr       (eth_out_wr[i]),  
+               .out_rdy      (eth_out_rdy[i]),
+               .clk          (clk),
+               .reset        (reset)
+           );
+        end
+    endgenerate
    //------------------------------------------------------------
    //register access
    //------------------------------------------------------------
@@ -379,19 +410,20 @@ module onet_core_logic(
 		.s_axi_rvalid     (s_axi_rvalid), 
 		.s_axi_rready     (s_axi_rready), 
       
-      .reg_req          (reg_req), 
-		.reg_rd_wr_L      (reg_rd_wr_L), 
-		.reg_addr         (reg_addr), 
-		.reg_wr_data      (reg_wr_data), 
-		.reg_ack          (reg_ack), 
-		.reg_rd_data      (reg_rd_data),  
+      .reg_req          (udp_reg_req), 
+		.reg_rd_wr_L      (udp_reg_rd_wr_L), 
+		.reg_addr         (udp_reg_addr), 
+		.reg_wr_data      (udp_reg_wr_data), 
+		.reg_ack          (udp_reg_ack), 
+		.reg_rd_data      (udp_reg_rd_data),  
       
       .s_axi_aclk       (s_axi_aclk),
       .s_axi_aresetn    (s_axi_aresetn),
       .reset            (reset), 
       .clk              (clk)
 	);
-   udp_reg_path_decode udp_reg_path_decode (
+	
+  /* udp_reg_path_decode udp_reg_path_decode (
 		.reg_req          (reg_req), 
 		.reg_rd_wr_L      (reg_rd_wr_L), 
 		.reg_addr         (reg_addr), 
@@ -415,7 +447,7 @@ module onet_core_logic(
       
 		.clk              (clk), 
 		.reset            (reset)
-	);
+	);*/
    
    //------------------------------------------------------------
    //user data path
@@ -435,40 +467,40 @@ module onet_core_logic(
       .in_wr_0          (in_wr[0]),
       .in_rdy_0         (in_rdy[0]),
 
-      .in_data_1        (in_data[1]),
+     /* .in_data_1        (in_data[1]),
       .in_ctrl_1        (in_ctrl[1]),
       .in_wr_1          (in_wr[1]),
-      .in_rdy_1         (in_rdy[1]),
+      .in_rdy_1         (in_rdy[1]),*/
 
       .in_data_2        (in_data[2]),
       .in_ctrl_2        (in_ctrl[2]),
       .in_wr_2          (in_wr[2]),
       .in_rdy_2         (in_rdy[2]),
 
-      .in_data_3        (in_data[3]),
+     /* .in_data_3        (in_data[3]),
       .in_ctrl_3        (in_ctrl[3]),
       .in_wr_3          (in_wr[3]),
-      .in_rdy_3         (in_rdy[3]),
+      .in_rdy_3         (in_rdy[3]),*/
 
       .in_data_4        (in_data[4]),
       .in_ctrl_4        (in_ctrl[4]),
       .in_wr_4          (in_wr[4]),
       .in_rdy_4         (in_rdy[4]),
 
-      .in_data_5        (in_data[5]),
+     /* .in_data_5        (in_data[5]),
       .in_ctrl_5        (in_ctrl[5]),
       .in_wr_5          (in_wr[5]),
-      .in_rdy_5         (in_rdy[5]),
+      .in_rdy_5         (in_rdy[5]),*/
 
       .in_data_6        (in_data[6]),
       .in_ctrl_6        (in_ctrl[6]),
       .in_wr_6          (in_wr[6]),
       .in_rdy_6         (in_rdy[6]),
 
-      .in_data_7        (in_data[7]),
+    /*  .in_data_7        (in_data[7]),
       .in_ctrl_7        (in_ctrl[7]),
       .in_wr_7          (in_wr[7]),
-      .in_rdy_7         (in_rdy[7]),
+      .in_rdy_7         (in_rdy[7]),*/
 
       // interface to MAC, CPU tx queues
       .out_data_0       (out_data[0]),
@@ -521,12 +553,15 @@ module onet_core_logic(
 
       // misc
       .reset            (reset),
-      .clk              (clk)
+      .clk              (clk),
+      
+      .sim_start        (sim_start)
    );
 
    //------------------------------------------------------------
    //register address space decode
    //------------------------------------------------------------
+   /*
    reg_grp #(
       .REG_ADDR_BITS(`CORE_REG_ADDR_WIDTH), //4M, 22bits
       .NUM_OUTPUTS(4)
@@ -607,8 +642,8 @@ module onet_core_logic(
                .reset               (reset)
             );
       end
-   endgenerate
-   
+   endgenerate*/
+   /*
    generate
       //genvar i;
       for (i = 0; i < 16; i = i + 1) begin: unused_reg_core_256kb
@@ -633,7 +668,7 @@ module onet_core_logic(
                .reset               (reset)
             );
       end
-   endgenerate
+   endgenerate*/
    
    //ETHERNET PATH
    assign      s_axis_eth_aclk_i[0] = s_axis_eth_aclk_0;
@@ -747,12 +782,75 @@ module onet_core_logic(
    
    //Adapt to the axi_ethernet ip core axi interface defination
    assign      s_axis_eth_rx_aresetn_0 = !reset;
-   assign      s_axis_eth_tx_aresetn_0 = !reset;
+   assign      m_axis_eth_tx_aresetn_0 = !reset;
    assign      s_axis_eth_rx_aresetn_1 = !reset;
-   assign      s_axis_eth_tx_aresetn_1 = !reset;
+   assign      m_axis_eth_tx_aresetn_1 = !reset;
    assign      s_axis_eth_rx_aresetn_2 = !reset;
-   assign      s_axis_eth_tx_aresetn_2 = !reset;  
+   assign      m_axis_eth_tx_aresetn_2 = !reset;  
    assign      s_axis_eth_rx_aresetn_3 = !reset;
-   assign      s_axis_eth_tx_aresetn_3 = !reset;   
+   assign      m_axis_eth_tx_aresetn_3 = !reset;   
+
+   
+
+   
+
+   // synthesis translate_off
+   reg[15:0]pkt_counter;
+   reg[3:0]state;
+   
+          
+   always@(posedge clk)
+       if(reset)
+           state<=0;
+       else case(state)
+           0:
+               if(s_axis_eth_rx_tlast_1)
+                   begin
+                       state<=1;
+                       sim_start<=1;
+                   end
+           1:
+               if(in_wr[2])
+                    begin
+                        state<=2;
+                        sim_start<=0;
+                    end
+           2:
+               if(out_wr[0])
+                   state<=3;
+           3: 
+               if(m_axis_eth_tx_tlast_0)
+                       state<=0;
+           endcase
+           
+
+   integer file;
+    initial begin
+        file=$fopen("D:/work_project/IP_program/pipeline_3_level_7045_tb/pipeline_patch.txt");
+    end
+        
+      reg[31:0]counter;
+      always@(posedge clk)
+          if(reset)
+              counter<=0;
+          else
+              counter<=counter+1;
+       
+       always@(posedge clk)
+        if(state==0 & s_axis_eth_rx_tlast_1)
+            begin
+                //$display("PKT %d STARTS",pkt_counter);
+                //$display("pkt arrives eth_queue at %d",counter);
+                $fwrite(file,"PKT  STARTS\n");
+                $fwrite(file,"pkt arrives eth_queue at %d\n",counter);
+            end
+        else if(state==3 & m_axis_eth_tx_tlast_0)
+            begin
+                //$display("pkt leaves eth_queue at %d",counter);
+                //$display("PKT %d ENDS",pkt_counter);
+                $fwrite(file,"pkt leaves eth_queue at %d\n",counter);
+                $fwrite(file,"PKT ENDS\n");
+            end
+   // synthesis translate_on
    
 endmodule
