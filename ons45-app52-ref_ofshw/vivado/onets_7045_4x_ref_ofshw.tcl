@@ -20,6 +20,8 @@ set proj_iprepo_dir  "$proj_root/ip-repo"
 
 set ip_list [list \
    "packet_pipeline_v1_0"\
+   "dma2eth_intercon"\
+   "eth2dma_intercon"\
    ]
 
 set source_files [list \
